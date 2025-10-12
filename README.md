@@ -91,7 +91,7 @@ io_uring：初始化ring，submit send请求，completion时处理（需liburing
 * Trade-off：需root权限；过度调大会浪费内存（e.g., tcp_mem太大使OOM）。<br/>
 * 示例：脚本optimize_kernel.sh<br/>
 ![alt text](image-2.png)
-<br/>
+
 ### 3. Reactor框架优化（核心事件循环，支持百万事件）
 #### 原理：主从Reactor分担负载，但从Reactor循环若慢（e.g., 处理>512事件），会延迟。优化让每个循环<5ms。<br/>
 #### 具体步骤：<br/>
@@ -103,7 +103,7 @@ io_uring：初始化ring，submit send请求，completion时处理（需liburing
 * Trade-off：多线程增加上下文切换（+5% CPU）；动态均衡复杂（需监控fd分布）。<br/>
 伪代码示例（优化从Reactor循环）：<br/>
 ![alt text](image-3.png)
-<br/>
+
 ### 4. I/O与写处理优化（避免阻塞，支持百万send）
 #### 原理：标准send易EAGAIN/阻塞，高并发时队列积压。异步I/O offload到内核。<br/>
 #### 具体步骤：<br/>
