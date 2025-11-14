@@ -1,3 +1,0 @@
-/home/chenlang/soft/better_server/customServer/build/CMakeFiles/rebuild_cache.dir
-/home/chenlang/soft/better_server/customServer/build/CMakeFiles/customServer.dir
-/home/chenlang/soft/better_server/customServer/build/CMakeFiles/edit_cache.dir

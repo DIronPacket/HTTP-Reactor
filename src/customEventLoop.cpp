@@ -175,7 +175,7 @@ int CustomEventLoop::HandleWrite(CustomConnector *customConnector)
         nwrote = send(customConnector->connectFd, writeData.c_str(), remaining, 0);
         if (nwrote > 0)
         {
-            LOG(outHead("info") + thread_id_str + " 向客户端发送数据：\r\n" + writeData.c_str(), true, SUB_REACTOR);
+            // LOG(outHead("info") + thread_id_str + " 向客户端发送数据：\r\n" + writeData.c_str(), true, SUB_REACTOR);
             remaining -= nwrote;
             outputBuffer->writeIndex += nwrote;
         }

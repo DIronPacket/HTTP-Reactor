@@ -25,7 +25,7 @@ WorkThreadPool::WorkThreadPool(int thread_num) : threadNum(thread_num),
                 }
                 if(connector_task)
                 {
-                    LOG(outHead("info") + " 工作线程拿出当前业务，开始处理", false, WORK_THREAD);
+                    // LOG(outHead("info") + " 工作线程拿出当前业务，开始处理", false, WORK_THREAD);
                     onMessage(connector_task);
                 }
             } });
@@ -58,7 +58,7 @@ void WorkThreadPool::submit(CustomConnector *customConnector)
         std::lock_guard<std::mutex> lock(mutex);
         // Assuming task_queue can hold CustomConnector pointers
         task_queue.push(customConnector);
-        LOG(outHead("info") + " 当前成功添加任务到工作线程的任务队列", false, WORK_THREAD);
+        // LOG(outHead("info") + " 当前成功添加任务到工作线程的任务队列", false, WORK_THREAD);
     }
     cond.notify_one(); // Notify one thread to process the task
 }
@@ -112,7 +112,7 @@ int WorkThreadPool::onRequest(CustomConnector *customConnector)
     int res_ = 0;
     if (httpRequest->method == "GET")
     {
-        LOG(outHead("info") + " 当前工作线程开始处理GET请求", false, WORK_THREAD);
+        // LOG(outHead("info") + " 当前工作线程开始处理GET请求", false, WORK_THREAD);
         if (content_type == "application/json")
         {
             // 获取数据
@@ -128,9 +128,14 @@ int WorkThreadPool::onRequest(CustomConnector *customConnector)
         }
         else
         {
-            LOG(outHead("error") + " 服务端不支持的数据类型", true, ERROR_LOG);
-            return 1;
+            //2025/11/11 modify test
+            // LOG(outHead("error") + " 服务端不支持的数据类型", true, ERROR_LOG);
+            // return 1;
+            // return 0;
         }
+        httpResponse->statusCode = OK;
+        httpResponse->statusMessage = "OK";
+        httpResponse->body = "200";
         httpResponse->responseHeaders["Content-Type"] = content_type;
     }
     else if (httpRequest->method == "POST")
@@ -172,7 +177,7 @@ int WorkThreadPool::onRequest(CustomConnector *customConnector)
             return 1;
         }
     }
-    LOG(outHead("info") + " 工作线程处理业务成功", true, WORK_THREAD);
+    // LOG(outHead("info") + " 工作线程处理业务成功", true, WORK_THREAD);
     return 0;
 }
 void WorkThreadPool::handleFailedRequest(CustomConnector *customConnector, int result)

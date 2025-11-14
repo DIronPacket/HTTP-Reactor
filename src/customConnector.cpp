@@ -101,14 +101,16 @@ int CustomConnector::encodeResponse()
     }
     outputBuffer->appendString("Content-Length: " + contentLen + "\r\n");
     
-    if (!httpResponse->keepAlive)
-    {
-        outputBuffer->appendString("Connection: close\r\n");
-    }
-    else
-    {
-        outputBuffer->appendString("Connection: Keep-Alive\r\n");
-    }
+    // if (!httpResponse->keepAlive)
+    // {
+    //     outputBuffer->appendString("Connection: close\r\n");
+    // }
+    // else
+    // {
+    //     outputBuffer->appendString("Connection: Keep-Alive\r\n");
+    // }
+    //djy 2025 11.13 
+    outputBuffer->appendString("Connection: close\r\n");
    
     for (auto it = httpResponse->responseHeaders.begin(); it != httpResponse->responseHeaders.end(); it++)
     {

@@ -37,7 +37,7 @@
 * 量化预期：1M push（32线程）：从2秒降到200ms；锁等待从50us/push降到0；QPS从50k升到200k。高级任务弹出率：100%优先（无锁不干扰排序）。<br/>
 * Trade-off：无锁更复杂（需处理try_pop失败）；在弱一致CPU（如ARM）上CAS重试多（+10%开销）；调试难（race condition需valgrind检查）。<br/>
 伪代码示例：<br/>
-![alt text](image.png)
+![alt text](./image/image.png)
 <br/>
 ### 步骤2: 分区全局队列（Hybrid分区，提升scalability 2x）
 #### 原理：将一个队列分成多个子队列（e.g., 4-8个），根据hash（如priority或fd）分配任务。每个子队列独立（有自己的锁或无锁），减少争用；写池并行处理子队列，优先高级分区。
@@ -48,7 +48,7 @@
 * 量化预期：1M任务分布到4子队列，每个250k；处理时间500ms（并行）；锁争用减半，QPS>300k。优先保证~95%严格（子间略松，但高级分区先处理）。
 * Trade-off：优先级从100%严格降到近似（e.g., prio1在sub0可能后于prio2在sub1）；管理多个队列复杂（+10%代码）。
 伪代码示例：
-![alt text](image-1.png)
+![alt text](./image/image-1.png)
 <br/>
 ### 步骤3: 批量操作与信号量增强（减少锁频次，提升效率 1.5x）
 #### 原理：单个push锁开销高，批量收集任务一次push；信号量分级让写池优先处理高级任务。
@@ -90,7 +90,7 @@ io_uring：初始化ring，submit send请求，completion时处理（需liburing
 * 量化预期：fd从默认4k升到1M；EAGAIN率降50%；百万连接无内核错误。<br/>
 * Trade-off：需root权限；过度调大会浪费内存（e.g., tcp_mem太大使OOM）。<br/>
 * 示例：脚本optimize_kernel.sh<br/>
-![alt text](image-2.png)
+![alt text](./image/image-2.png)
 
 ### 3. Reactor框架优化（核心事件循环，支持百万事件）
 #### 原理：主从Reactor分担负载，但从Reactor循环若慢（e.g., 处理>512事件），会延迟。优化让每个循环<5ms。<br/>
@@ -102,7 +102,7 @@ io_uring：初始化ring，submit send请求，completion时处理（需liburing
 * 量化预期：百万事件分担到16从Reactor，每个处理~62k fd；循环时间<5ms，QPS>200k（从10k升）。<br/>
 * Trade-off：多线程增加上下文切换（+5% CPU）；动态均衡复杂（需监控fd分布）。<br/>
 伪代码示例（优化从Reactor循环）：<br/>
-![alt text](image-3.png)
+![alt text](./image/image-3.png)
 
 ### 4. I/O与写处理优化（避免阻塞，支持百万send）
 #### 原理：标准send易EAGAIN/阻塞，高并发时队列积压。异步I/O offload到内核。<br/>
@@ -114,7 +114,7 @@ io_uring：初始化ring，submit send请求，completion时处理（需liburing
 * 量化预期：EAGAIN率<10%；百万send burst处理<2s（从10s降）；QPS>500k。<br/>
 * Trade-off：io_uring需新内核，学习曲线陡；批量submit增加微延迟（1ms）。<br/>
 * 示例：用liburing安装（apt install liburing-dev），伪代码：<br/>
-![alt text](image-4.png)
+![alt text](./image/image-4.png)
 
 ### 5. 优先级队列与线程池优化（应用层，高并发调度）
 #### 原理：之前焦点队列在百万push时锁争用高；分区+无锁分布负载。<br/>

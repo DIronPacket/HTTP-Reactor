@@ -110,6 +110,6 @@ void MyServer::createConnection()
     fcntl(connect_fd, F_SETFL, O_NONBLOCK);
     CustomEventLoop *sub_loop = threadPool->getNextLoop();
     CustomConnector *customConnector = new CustomConnector(connect_fd, sub_loop, this);
-    LOG(outHead("info") + "reactor 成功创建新连接并间接交给子reactor ", true, MAIN_REACTOR);
+    // LOG(outHead("info") + "reactor 成功创建新连接并间接交给子reactor ", true, MAIN_REACTOR);
 }
 
