@@ -21,7 +21,7 @@ void CustomEpoller::poll(int timeouts)
             int handle_res = 0;
             if (connectorMap.find(fd) == connectorMap.end())
             {
-                LOG(outHead("error") +"当前没有找到连接套接字", true, ERROR_LOG);
+                SPDLOG_ERROR("当前没有找到连接套接字");
                 continue;
             }
             CustomConnector *customConnector = connectorMap[fd];
@@ -30,12 +30,12 @@ void CustomEpoller::poll(int timeouts)
             assert(customConnector->connectFd == fd);
             if (revents[i].events & EPOLLIN)
             {
-                LOG(outHead("info") +owner_loop->thread_id_str+" 监听到读事件", false, SUB_REACTOR);
+                SPDLOG_TRACE("{} 监听到读事件",owner_loop->thread_id_str);
                 handle_res = owner_loop->HandleRead(customConnector);
             }
             else if (revents[i].events & EPOLLOUT)
             {
-                LOG(outHead("info") +owner_loop->thread_id_str+" 监听到写事件", false, SUB_REACTOR);
+                SPDLOG_TRACE("{} 监听到写事件",owner_loop->thread_id_str);
                 handle_res = owner_loop->HandleWrite(customConnector);
                 owner_loop->HandleClose(customConnector);
             }
@@ -46,13 +46,14 @@ void CustomEpoller::poll(int timeouts)
 }
 void CustomEpoller::addEpollWaitFd(CustomConnector *customConnector)
 {
+    std::lock_guard<std::mutex> lock(map_mutex);
     epoll_event event;
     event.data.fd = customConnector->connectFd;
     event.events = customConnector->events;
 
     connectorMap[customConnector->connectFd] = customConnector;
     epoll_ctl(epfd, EPOLL_CTL_ADD, customConnector->connectFd, &event);
-    LOG(outHead("info") +owner_loop->thread_id_str+" 向epoll中添加套接字", false, SUB_REACTOR);
+    SPDLOG_TRACE("{} 向epoll中添加套接字",owner_loop->thread_id_str);
 }
 void CustomEpoller::modifyConnector(CustomConnector *customConnector)
 {
@@ -61,12 +62,13 @@ void CustomEpoller::modifyConnector(CustomConnector *customConnector)
     event.events = customConnector->events;
     connectorMap[customConnector->connectFd] = customConnector;
     epoll_ctl(epfd, EPOLL_CTL_MOD, customConnector->connectFd, &event);
-    LOG(outHead("info") +owner_loop->thread_id_str+" 修改正在监听的套接字的事件", false, SUB_REACTOR);
+    SPDLOG_TRACE("{} 修改正在监听的套接字的事件",owner_loop->thread_id_str);
 }
 
 void CustomEpoller::removeFd(CustomConnector *customConnector)
 {
+    std::lock_guard<std::mutex> lock(map_mutex);
     int err = epoll_ctl(epfd, EPOLL_CTL_DEL, customConnector->connectFd, NULL);
     connectorMap.erase(customConnector->connectFd);
-    LOG(outHead("info") +owner_loop->thread_id_str+" 删除当前套接字", false, SUB_REACTOR);
+    SPDLOG_TRACE("{} 删除当前套接字",owner_loop->thread_id_str);
 }

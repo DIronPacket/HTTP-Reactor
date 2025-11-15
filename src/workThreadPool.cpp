@@ -25,7 +25,6 @@ WorkThreadPool::WorkThreadPool(int thread_num) : threadNum(thread_num),
                 }
                 if(connector_task)
                 {
-                    // LOG(outHead("info") + " 工作线程拿出当前业务，开始处理", false, WORK_THREAD);
                     onMessage(connector_task);
                 }
             } });
@@ -50,7 +49,7 @@ void WorkThreadPool::submit(CustomConnector *customConnector)
 {
     if (!customConnector)
     {
-        LOG(outHead("error") + " 提交的业务指针为空指针", true, ERROR_LOG);
+        SPDLOG_ERROR("提交的业务指针为空指针");
         return;
     }
 
@@ -58,7 +57,6 @@ void WorkThreadPool::submit(CustomConnector *customConnector)
         std::lock_guard<std::mutex> lock(mutex);
         // Assuming task_queue can hold CustomConnector pointers
         task_queue.push(customConnector);
-        // LOG(outHead("info") + " 当前成功添加任务到工作线程的任务队列", false, WORK_THREAD);
     }
     cond.notify_one(); // Notify one thread to process the task
 }
@@ -70,7 +68,7 @@ int WorkThreadPool::onMessage(CustomConnector *customConnector)
 {
     if (!customConnector)
     {
-        LOG(outHead("error") + " 连接为空指针", true, ERROR_LOG);
+        SPDLOG_ERROR("连接为空指针");
         return -1;
     }
     std::thread::id current_id = std::this_thread::get_id();
@@ -86,14 +84,14 @@ int WorkThreadPool::onMessage(CustomConnector *customConnector)
     }
     catch(const exception &e)
     {
-        LOG(outHead("error") + " 服务器处理报错：" + e.what(), true, ERROR_LOG);
+        SPDLOG_ERROR("服务器处理报错：{}",e.what());
         res_=-1;
     }
 
     if (res_ != 0)
     {
         handleFailedRequest(customConnector, res_);
-        LOG(outHead("error") + " 当前工作线程事件处理失败：" + customConnector->httpResponse->resourseName, true, ERROR_LOG);
+        SPDLOG_ERROR("当前工作线程事件处理失败：{}",customConnector->httpResponse->resourseName);
     }
     customConnector->encodeResponse();
     // 启用写事件
@@ -112,26 +110,18 @@ int WorkThreadPool::onRequest(CustomConnector *customConnector)
     int res_ = 0;
     if (httpRequest->method == "GET")
     {
-        // LOG(outHead("info") + " 当前工作线程开始处理GET请求", false, WORK_THREAD);
         if (content_type == "application/json")
         {
             // 获取数据
             if (res_ != 0)
             {
-                LOG(outHead("error") + " 工作线程获取数据失败：" + customConnector->httpRequest->rquestResourse, true, WORK_THREAD);
+                SPDLOG_ERROR("工作线程获取数据失败：{}",customConnector->httpRequest->rquestResourse);
                 return res_;
             }
         }
         else if (content_type == "multipart/form-data")
         {
             //获取文件数据
-        }
-        else
-        {
-            //2025/11/11 modify test
-            // LOG(outHead("error") + " 服务端不支持的数据类型", true, ERROR_LOG);
-            // return 1;
-            // return 0;
         }
         httpResponse->statusCode = OK;
         httpResponse->statusMessage = "OK";
@@ -143,14 +133,14 @@ int WorkThreadPool::onRequest(CustomConnector *customConnector)
         // 如果POST请求中没有获取到消息体
         if (httpRequest->body.empty())
         {
-            LOG(outHead("error") + " 当前工作线程获取到的消息体为空", true, ERROR_LOG);
+            SPDLOG_ERROR("当前工作线程获取到的消息体为空");
             return 1;
         }
-        LOG(outHead("info") + " 工作线程开始处理POST请求", false, WORK_THREAD);
+        SPDLOG_TRACE("工作线程开始处理POST请求");
         if (content_type == "application/json")
         {
             json recv_j = json::parse(httpRequest->body);
-            LOG(outHead("info") + " 准备将消息体解析为JSON数据:" + recv_j.dump(), false, WORK_THREAD);
+            SPDLOG_TRACE("准备将消息体解析为JSON数据:{}",recv_j.dump());
             //POST业务处理
             httpResponse->responseHeaders["Content-Type"] = content_type;
         }
@@ -162,22 +152,22 @@ int WorkThreadPool::onRequest(CustomConnector *customConnector)
             res_ = parseFileSaveLocal(httpResponse, httpRequest, customConnector->myserver->io_mutex);
             if (res_ != 0)
             {
-                LOG(outHead("error") + " 工作线程保存文件时失败", true, ERROR_LOG);
+                SPDLOG_ERROR("工作线程保存文件时失败");
                 return res_;
             }
             httpResponse->statusCode = OK;
             httpResponse->statusMessage = "OK";
             httpResponse->body = "200";
-            LOG(outHead("info") + " 工作线程成功获取文件数据", true, WORK_THREAD);
+            SPDLOG_TRACE("工作线程成功获取文件数据");
         }
         // 服务端不支持的数据类型
         else
         {
-            LOG(outHead("error") + " 服务端不支持的数据类型", true, ERROR_LOG);
+            SPDLOG_ERROR("服务端不支持的数据类型");
             return 1;
         }
     }
-    // LOG(outHead("info") + " 工作线程处理业务成功", true, WORK_THREAD);
+    SPDLOG_TRACE("工作线程处理业务成功");
     return 0;
 }
 void WorkThreadPool::handleFailedRequest(CustomConnector *customConnector, int result)

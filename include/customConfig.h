@@ -31,8 +31,8 @@ public:
     CustomConfig();
     bool initConfig();
 
-    std::string readConfig(std::string key);
-    void writeConfig(std::string key, std::string value);
+    std::string readConfig(const std::string &key);
+    void writeConfig(const std::string &key, const std::string &value);
 
 private:
     bool getConfigData();

@@ -31,6 +31,7 @@ public:
     void removeFd(CustomConnector *customConnector);
 
 public:
+    std::mutex map_mutex;
     ConnectorMap connectorMap;
     CustomEventLoop *owner_loop;
     int epfd;

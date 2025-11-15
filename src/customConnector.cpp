@@ -21,17 +21,17 @@ CustomConnector::~CustomConnector()
     int err = close(connectFd);
     if (err == 0)
     {
-        LOG(outHead("info") + "closed "+std::to_string(connectFd) , false, WORK_THREAD);
+        SPDLOG_TRACE("fd {} is closed ",connectFd);
     }
     else
     {
-        LOG(outHead("error") + "failed to close "+std::to_string(connectFd)+" , err=" + std::to_string(err)  , false, ERROR_LOG);
+        SPDLOG_ERROR("Failed to close fd:{} , error:{}",connectFd,std::to_string(err));
     }
     // delete inputBuffer;
     // inputBuffer = nullptr;
     delete outputBuffer;
     outputBuffer = nullptr;
-    LOG(outHead("info") + "customconnector析构成功 " , false, WORK_THREAD);
+    SPDLOG_TRACE("customconnector析构成功");
 }
 int CustomConnector::decodeRequest()
 {
@@ -84,7 +84,7 @@ int CustomConnector::decodeRequest()
     //         httpRequest->currentState = HADNLE_COMPLATE;
     //     }
     // }
-    LOG(outHead("info") + "解析结束 " , false, WORK_THREAD);
+    SPDLOG_TRACE("request 解析结束");    
     return ok;
 }
 
@@ -124,7 +124,7 @@ int CustomConnector::encodeResponse()
 
 void CustomConnector::initConnection()
 {
-    LOG(outHead("info") + "添加连接到子线程 " , false, WORK_THREAD);
+    SPDLOG_TRACE("添加连接到子线程");
     connector_eventLoop->addEventWaitFd(this);
 }
 

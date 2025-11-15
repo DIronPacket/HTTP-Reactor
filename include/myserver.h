@@ -33,7 +33,7 @@ public:
     {
         // 处理信号的代码
         isRunning = false;
-        LOG(outHead("info") + "接收到关闭信号", true, MAIN_REACTOR);
+        SPDLOG_INFO("接收到关闭信号");
     }
 
     static void signal_handler_wrapper(int signal)

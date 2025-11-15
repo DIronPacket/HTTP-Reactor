@@ -1,5 +1,5 @@
 #include "myserver.h"
-
+#include "spdlog/spdlog.h"
 int MyServer::m_epollfd = -1;
 bool MyServer::isRunning = false;
 
@@ -27,11 +27,11 @@ MyServer::~MyServer()
     int err = close(acceptor->listen_fd);
     if (err == 0)
     {
-        LOG(outHead("info") + "监听套接字关闭成功:"+std::to_string(acceptor->listen_fd), false, MAIN_REACTOR);
+        SPDLOG_TRACE("监听套接字关闭成功:{}",std::to_string(acceptor->listen_fd));
     }
     else
     {
-        LOG(outHead("error") + "监听套接字关闭失败:"+std::to_string(acceptor->listen_fd)+" , err:"+std::to_string(err), true, ERROR_LOG);
+        SPDLOG_ERROR("监听套接字关闭失败:{},error:{}",std::to_string(acceptor->listen_fd),std::to_string(err));
     }
     delete acceptor;
     acceptor = nullptr;
@@ -44,7 +44,7 @@ void MyServer::start()
     m_epollfd = epoll_create1(0);
     if(m_epollfd==-1)
     {
-        LOG(outHead("error") + "主线程创建套接字失败!", true, ERROR_LOG);
+        SPDLOG_ERROR("主线程创建套接字失败!");
         return;
     }
     // ListenFd 设置为 边沿触发、非阻塞
@@ -53,13 +53,13 @@ void MyServer::start()
     int ret = addWaitFd(m_epollfd, acceptor->listen_fd, false, false);
     if (ret != 0)
     {
-        LOG(outHead("error") + "添加监控 Listen 套接字失败", false, ERROR_LOG);
+        SPDLOG_ERROR("添加监控 Listen 套接字失败");
         return;
     }
-    LOG(outHead("info") + "epoll 中添加监听套接字成功", false, MAIN_REACTOR);
+    SPDLOG_TRACE("epoll 中添加监听套接字成功");
     isRunning = true;
     int res_ = waitEpoll();
-    LOG(outHead("info") + "结束程序!", true, MAIN_REACTOR);
+    SPDLOG_TRACE("结束程序!");
     //立即终止当前程序
     exit(0);
 }
@@ -72,10 +72,10 @@ int MyServer::waitEpoll()
         int resNum = epoll_wait(m_epollfd, resEvents, MAX_RESEVENT_SIZE, -1);
         if (resNum < 0 && errno != EINTR)
         {
-            LOG(outHead("error") + "epoll_wait 执行错误", true, ERROR_LOG);
+            SPDLOG_ERROR("epoll_wait 执行错误");
             return -1;
         }
-        LOG(outHead("info") + "epoll_wait 监听到新事件:" + std::to_string(resNum), false, MAIN_REACTOR);
+        SPDLOG_TRACE("epoll_wait 监听到新事件:{}",std::to_string(resNum));
         for (int i = 0; i < resNum; ++i)
         {
             int resfd = resEvents[i].data.fd;
@@ -85,18 +85,18 @@ int MyServer::waitEpoll()
                 // 检查这个文件描述符是否是监听套接字的文件描述符
                 if (resfd == acceptor->listen_fd) // 假设m_listenfd是监听套接字的文件描述符
                 {
-                    LOG(outHead("info") + "reactor 监听到连接事件", false, MAIN_REACTOR);
+                    SPDLOG_TRACE("reactor 监听到连接事件");
                     createConnection();
                 }
                 else
                 {
                     // 如果不是监听套接字，则忽略或记录日志
-                    LOG(outHead("error") + "reactor 忽略非监听套接字的EPOLLIN事件", false, ERROR_LOG);
+                    SPDLOG_TRACE("reactor 忽略非监听套接字的EPOLLIN事件");
                 }
             }
             else
             {
-                LOG(outHead("error") + "reactor 监听到其他不支持的事件", false, ERROR_LOG);
+                SPDLOG_TRACE("reactor 监听到其他不支持的事件");
             }
         }
     }
@@ -110,6 +110,6 @@ void MyServer::createConnection()
     fcntl(connect_fd, F_SETFL, O_NONBLOCK);
     CustomEventLoop *sub_loop = threadPool->getNextLoop();
     CustomConnector *customConnector = new CustomConnector(connect_fd, sub_loop, this);
-    // LOG(outHead("info") + "reactor 成功创建新连接并间接交给子reactor ", true, MAIN_REACTOR);
+    SPDLOG_TRACE("reactor 成功创建新连接并间接交给子reactor");
 }
 

@@ -50,7 +50,7 @@ void HttpRequest::addHeaderOpt(const std::string &headLine)
     {
         // 保存消息体的长度
         contentLength = std::stoll(value);
-        LOG(outHead("info")  + " 当前消息体的长度："+std::to_string(contentLength), false, SUB_REACTOR);
+        SPDLOG_TRACE("当前消息体的长度：{}",std::to_string(contentLength));
     }
     else if (key == "Content-Type")
     {

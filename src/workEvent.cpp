@@ -36,7 +36,7 @@ int parseFileSaveLocal(HttpResponse *httpResponse, HttpRequest *httpRequest, std
         // 检测是否为空行，如果是空行，修改状态，退出
         if (strLine == "\r\n")
         {
-            LOG(outHead("error") + " 文件读取失败！", true, ERROR_LOG);
+            SPDLOG_ERROR("文件读取失败！");
             return -1;
         }
         // 查找 strLine 是否包含 filename
@@ -54,7 +54,7 @@ int parseFileSaveLocal(HttpResponse *httpResponse, HttpRequest *httpRequest, std
     // 如果没有找到，表示消息还没有接收完整，退出，等待下一轮的事件中继续处理
     else
     {
-        LOG(outHead("error") + " 文件读取失败！", true, ERROR_LOG);
+        SPDLOG_ERROR("文件读取失败！");
         return -1;
     }
 
@@ -73,7 +73,7 @@ int parseFileSaveLocal(HttpResponse *httpResponse, HttpRequest *httpRequest, std
     std::ofstream ofs(httpResponse->resourseName, std::ios::out | std::ios::trunc | std::ios::binary);
     if (!ofs.is_open())
     {
-        LOG(outHead("error") + " 文件打开失败！", true, ERROR_LOG);
+        SPDLOG_ERROR("文件打开失败！");
         return -1;
     }
     while (1)
@@ -129,6 +129,6 @@ int parseFileSaveLocal(HttpResponse *httpResponse, HttpRequest *httpRequest, std
         httpRequest->body.erase(0, saveLen);
     }
     ofs.close();
-    LOG(outHead("info") + " 文件保存成功！", true, WORK_THREAD);
+    SPDLOG_TRACE("文件保存成功！");
     return 0;
 }

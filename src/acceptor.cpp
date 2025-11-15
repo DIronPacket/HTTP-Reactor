@@ -15,12 +15,12 @@ Acceptor::Acceptor(int port,const char *ip):listen_port(port)
     {
         m_serverAddr.sin_addr.s_addr = htonl(INADDR_ANY);
     }
-
+    SPDLOG_INFO("port:{}",port);
     // 创建套接字
     listen_fd = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP);
     if (listen_fd < 0)
     {
-        LOG(outHead("error") + "套接字创建失败", false,ERROR_LOG);
+        SPDLOG_ERROR("套接字创建失败,error:{}",std::strerror(errno));
         return;
     }
     // 设置地址可重用
@@ -28,7 +28,7 @@ Acceptor::Acceptor(int port,const char *ip):listen_port(port)
     int ret = setsockopt(listen_fd, SOL_SOCKET, SO_REUSEADDR, &reuseAddr, sizeof(reuseAddr));
     if (ret != 0)
     {
-        LOG(outHead("error") + "套接字设置地址重用失败", false,ERROR_LOG);
+        SPDLOG_ERROR("套接字设置地址重用失败,error:{}",std::strerror(errno));
         return;
     }
 
@@ -36,7 +36,7 @@ Acceptor::Acceptor(int port,const char *ip):listen_port(port)
     ret = bind(listen_fd, (sockaddr *)&m_serverAddr, sizeof(m_serverAddr));
     if (ret != 0)
     {
-        LOG(outHead("error") + "套接字绑定地址失败", false,ERROR_LOG);
+        SPDLOG_ERROR("套接字绑定地址失败,error:{}",std::strerror(errno));
         return;
     }
 
@@ -44,7 +44,7 @@ Acceptor::Acceptor(int port,const char *ip):listen_port(port)
     ret = listen(listen_fd, MaxListenFd);
     if (ret != 0)
     {
-        LOG(outHead("error") + "套接字开启监听失败", false,ERROR_LOG);
+        SPDLOG_ERROR("套接字开启监听失败,error:{}",std::strerror(errno));
         return;
     }
 }
@@ -53,6 +53,6 @@ int Acceptor::acceptClient()
     sockaddr_in client_addr;
     socklen_t client_len = sizeof(client_addr);
     int connect_fd = accept(listen_fd, (sockaddr *)&client_addr, &client_len); 
-    LOG(outHead("info") + "在监听套接字上进行连接", false,MAIN_REACTOR);
+    // SPDLOG_TRACE("在监听套接字上进行连接");
     return connect_fd;
 }

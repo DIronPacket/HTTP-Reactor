@@ -18,7 +18,7 @@ bool CustomConfig::initConfig()
     std::ifstream iniServerFile(initPath), iniTopicFile(urlPath);
     if (!iniServerFile.is_open())
     {
-        LOG(outHead("error") + "无法打开服务端配置文件：" + initPath, true, ERROR_LOG);
+        SPDLOG_ERROR("无法打开服务端配置文件：{}",initPath);
         return false;
     }
     std::string lineStr, configKey, configValue;
@@ -38,7 +38,7 @@ bool CustomConfig::initConfig()
 
     if (!iniTopicFile.is_open())
     {
-        LOG(outHead("error") + "无法打开服务端配置文件：" + urlPath, true, ERROR_LOG);
+        SPDLOG_ERROR("无法打开服务端配置文件：{}",urlPath);
         return false;
     }
     // 读取HTTP通信的topic数据
@@ -74,14 +74,14 @@ bool CustomConfig::getConfigData()
     }
     catch (const std::exception &e)
     {
-        LOG(outHead("error") + "获取.ini的配置信息时出现错误：" + e.what(), true, ERROR_LOG);
+        SPDLOG_ERROR("获取.ini的配置信息时出现错误:{}",e.what());
         return false;
     }
     return true;
 }
-std::string CustomConfig::readConfig(std::string key)
+std::string CustomConfig::readConfig(const std::string &key)
 {
 }
-void CustomConfig::writeConfig(std::string key, std::string value)
+void CustomConfig::writeConfig(const std::string &key, const std::string &value)
 {
 }

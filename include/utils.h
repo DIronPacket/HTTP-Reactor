@@ -18,7 +18,16 @@
 #include <mutex>
 #include "read_write_lock.h"
 #include "customConfig.h"
-
+// 包含 spdlog 的核心头文件
+#include "spdlog/spdlog.h"
+#include "spdlog/async.h"
+// 包含你需要的 sink 头文件
+#include "spdlog/sinks/stdout_color_sinks.h"
+#include "spdlog/sinks/rotating_file_sink.h"
+#include "spdlog/sinks/basic_file_sink.h"
+#include <cstring> // For std::strerror
+#include <cerrno>  // For errno
+#include <mutex>
 class CustomConfig;
 // 以 "09:50:19.0619 2022-09-26 [logType]: " 格式返回当前的时间和输出类型，logType 指定输出的类型：
 // init  : 表示服务器的初始化过程
@@ -31,9 +40,6 @@ enum THREADTYPE
     WORK_THREAD,   // 工作线程
     ERROR_LOG   //报错日志
 };
-
-std::string outHead(const std::string logType);
-void LOG(const std::string currentType, bool flag, THREADTYPE value);
 
 // 向 epollfd 添加文件描述符，并指定监听事件。edgeTrigger：边缘触发，isOneshot：EPOLLONESHOT
 int addWaitFd(int epollFd, int newFd, bool edgeTrigger = false, bool isOneshot = false);

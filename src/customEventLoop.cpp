@@ -19,7 +19,7 @@ void CustomEventLoop::loop()
     looping = true;
     while (!quit)
     {
-        LOG(outHead("info") + thread_id_str + "开始准备进入事件循环", false, SUB_REACTOR);
+        SPDLOG_TRACE("{} 开始准备进入事件循环",thread_id_str);
         epoller->poll(kEPollTimeoutMs);
         std::this_thread::sleep_for(std::chrono::milliseconds(100)); // 休眠100毫秒
     }
@@ -55,12 +55,11 @@ int CustomEventLoop::HandleRead(CustomConnector *customConnector)
         recvLen = recv(customConnector->connectFd, customConnector->inputBuffer, 2048, 0);
         // std::cout << "当前读取数据量：" << std::endl
         //           << customConnector->inputBuffer << std::endl;
-
         // 对方关闭连接，直接断开连接，设置当前状态为 HANDLE_ERROR，再退出循环
         if (recvLen == 0)
         {
             temp_request->currentState = HANDLE_ERROR;
-            LOG(outHead("error") + thread_id_str + "对方关闭连接，当前直接断开连接！", true, ERROR_LOG);
+            // SPDLOG_ERROR("{} 对方关闭连接，当前直接断开连接！",thread_id_str);
             break;
         }
         // 如果缓冲区的数据已经读完，退出读数据的状态
@@ -69,17 +68,17 @@ int CustomEventLoop::HandleRead(CustomConnector *customConnector)
             if (errno != EAGAIN)
             { // 如果不是缓冲区为空，设置状态为错误，并退出循环
                 temp_request->currentState = HANDLE_ERROR;
-                LOG(outHead("error") + thread_id_str + "数据已经读完，但是缓冲区还有数据，读取错误！", true, ERROR_LOG);
+                SPDLOG_ERROR("{} 数据已经读完，但是缓冲区还有数据，读取错误！",thread_id_str);
                 break;
             }
             else if (errno == EAGAIN)
             {
-                LOG(outHead("info") + thread_id_str + "系统调用错误，continue继续读取数据！", false, SUB_REACTOR);
+                SPDLOG_TRACE("{} 系统调用错误,continue继续读取数据!",thread_id_str);
                 continue;
             }
             // 如果是缓冲区为空，表示需要等待数据发送，由于是 EPOLLONESHOT，再退出循环，等再发来数据时再来处理
             modifyWaitFd(epoller->epfd, customConnector->connectFd, true, true, false);
-            LOG(outHead("info") + thread_id_str + "缓冲区为空，数据尚未读完， continue 继续 errno:" + std::to_string(errno), true, SUB_REACTOR);
+            SPDLOG_TRACE("{} 缓冲区为空，数据尚未读完， continue 继续 errno:{}",thread_id_str, std::to_string(errno));
             continue;
         }
 
@@ -145,7 +144,7 @@ int CustomEventLoop::HandleRead(CustomConnector *customConnector)
             temp_request->recvMsg.clear();
             // 提交到工作线程池
             temp_request->currentState = HADNLE_COMPLATE;
-            LOG(outHead("info") + thread_id_str + "接收客户端数据完毕，退出循环！", true, SUB_REACTOR);
+            SPDLOG_TRACE("{} 接收客户端数据完毕，退出循环！",thread_id_str);
             break;
         }
     }
@@ -153,7 +152,7 @@ int CustomEventLoop::HandleRead(CustomConnector *customConnector)
     // 如果处理状态错误
     if (temp_request->currentState == HANDLE_ERROR)
         return -1;
-    LOG(outHead("info") + thread_id_str + "HTTP消息接收并处理完毕！", false, SUB_REACTOR);
+    SPDLOG_TRACE("{} HTTP消息接收并处理完毕!",thread_id_str);
     temp_request->currentState = HADNLE_COMPLATE;
     // 提交给工作线程池
     customConnector->myserver->workThreadPool->submit(customConnector);
@@ -175,7 +174,7 @@ int CustomEventLoop::HandleWrite(CustomConnector *customConnector)
         nwrote = send(customConnector->connectFd, writeData.c_str(), remaining, 0);
         if (nwrote > 0)
         {
-            // LOG(outHead("info") + thread_id_str + " 向客户端发送数据：\r\n" + writeData.c_str(), true, SUB_REACTOR);
+            SPDLOG_TRACE("{} 向客户端发送数据：{}",thread_id_str,writeData.c_str());
             remaining -= nwrote;
             outputBuffer->writeIndex += nwrote;
         }
@@ -186,19 +185,19 @@ int CustomEventLoop::HandleWrite(CustomConnector *customConnector)
                 if (errno == EWOULDBLOCK)
                 {
                     // 没有更多数据可写，等待下一次写事件触发
-                    LOG(outHead("info") + thread_id_str + " 缓冲区满，等待继续发送", false, SUB_REACTOR);
+                    SPDLOG_TRACE("{} 缓冲区满，等待继续发送",thread_id_str);
                     continue; // 没有更多数据可写，等待下一次写事件触发
                 }
                 else
                 {
-                    LOG(outHead("info") + thread_id_str + " 发送错误，关闭当前连接", false, SUB_REACTOR);
+                    SPDLOG_TRACE("{} 发送错误，关闭当前连接",thread_id_str);
                     return 0;
                 }
             }
             // 如果write返回0，对端关闭连接
             if (nwrote == 0)
             {
-                LOG(outHead("error") + thread_id_str + " 发送数据时对端关闭连接", false, ERROR_LOG);
+                SPDLOG_ERROR("{} 发送数据时对端关闭连接",thread_id_str);
                 return 0;
             }
         }
@@ -211,25 +210,25 @@ int CustomEventLoop::HandleWrite(CustomConnector *customConnector)
             nwrote = sendfile(customConnector->connectFd, customConnector->httpResponse->fileMsgFd, &offset, customConnector->httpResponse->fileSize - offset);
             if (nwrote > 0)
             {
-                LOG(outHead("info") + thread_id_str + " 文件发送成功，发送字符数：" + std::to_string(nwrote), true, SUB_REACTOR);
+                SPDLOG_TRACE("{} 文件发送成功，发送字符数：{}",thread_id_str,std::to_string(nwrote));
             }
             else if (nwrote < 0)
             {
                 if (errno == EWOULDBLOCK)
                 {
-                    LOG(outHead("info") + thread_id_str + " 发送文件时发送缓冲区满，等待继续发送", false, SUB_REACTOR);
+                    SPDLOG_TRACE("{} 发送文件时发送缓冲区满，等待继续发送",thread_id_str);
                     continue; // 没有更多数据可写，等待下一次写事件触发
                 }
                 else
                 {
-                    LOG(outHead("error") + thread_id_str + " 发送文件数据时发生错误", false, ERROR_LOG);
+                    SPDLOG_ERROR("{} 发送文件数据时发生错误",thread_id_str);
                     close(customConnector->httpResponse->fileMsgFd); // 关闭文件描述符
                     return 0;             // 发生错误，关闭连接
                 }
             }
             else // nwrote == 0，对端关闭连接
             {
-                LOG(outHead("error") + thread_id_str + " 发送文件时对端关闭连接", false, ERROR_LOG);
+                SPDLOG_ERROR("{} 发送文件时对端关闭连接",thread_id_str);
                 close(customConnector->httpResponse->fileMsgFd); // 关闭文件描述符
                 return 0;
             }
@@ -249,12 +248,12 @@ int CustomEventLoop::HandleClose(CustomConnector *customConnector)
     customConnector->deregister();
     delete customConnector;
     customConnector = nullptr;
-    LOG(outHead("info") + thread_id_str + " 线程关闭当前连接", false, SUB_REACTOR);
+    SPDLOG_TRACE("{} 线程关闭当前连接",thread_id_str);
     return 0;
 }
 void CustomEventLoop::stopEventLoop(CustomEventLoop *customEventLoop)
 {
     quit = true;
-    LOG(outHead("info") + thread_id_str + " 线程停止当前事件循环", false, SUB_REACTOR);
+    SPDLOG_TRACE("{} 线程停止当前事件循环",thread_id_str);
     customEventLoop->~CustomEventLoop();
 }
